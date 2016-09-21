@@ -135,7 +135,7 @@ void printHelpMessage(void) {
 
 void printShortHelpMessage(void) {
   printf("\nAcceptable options are:\n");
-  printf("[-h], [--help], [-l][required_arg], [-n][required_arg]\n\n");
+  printf("[-h], [--help], [-l][required_arg], [-s][required_arg], [-i][required_arg], [-t][required_arg]\n\n");
 }
 
 void buildAndAddErrorMessage(char *errorMessage, char *programName, int nValue) {
