@@ -17,7 +17,7 @@ int main (int argc, char **argv)
   int iValue = 3;
   int tValue = 20;
   char *filename = "test.out";
-  char *defaultFileName = "logfile.txt";
+  char *defaultFileName = "test.out";
   char *programName = argv[0];
   char *option = NULL;
   char *short_options = "hs:l:i:t:";
@@ -48,80 +48,39 @@ int main (int argc, char **argv)
         tValue = atoi(optarg);  
       case '?':
         if (optopt == 's') {
-          char message[50];
-          sprintf(message, "Option -%c requires an argument. Using default value.", optopt);
-          puts(message);
-          buildAndAddErrorMessage(message, programName, sValue);
+          fprintf(stderr, "Option -%c requires an argument. Using default value.", optopt);
           sValue = 42;
         }
         else if (optopt == 'l') {
-          char message[50];
-          sprintf(message, "Option -%c requires an argument. Using default value.", optopt);
-          puts(message);
-          buildAndAddErrorMessage(message, programName, sValue);
+          fprintf(stderr, "Option -%c requires an argument. Using default value.", optopt);
           filename = defaultFileName;
         }
         else if (optopt == 'i') {
-          char message[50];
-          sprintf(message, "Option -%c requires an argument. Using default value.", optopt);
-          puts(message);
-          buildAndAddErrorMessage(message, programName, sValue);
-          filename = defaultFileName;
+          fprintf(stderr, "Option -%c requires an argument. Using default value.", optopt);
+          iValue = 3;
         }
         else if (optopt == 't') {
-          char message[50];
-          sprintf(message, "Option -%c requires an argument. Using default value.", optopt);
-          puts(message);
-          buildAndAddErrorMessage(message, programName, sValue);
-          filename = defaultFileName;
+          fprintf(stderr, "Option -%c requires an argument. Using default value.", optopt);
+          tValue = 20;
         }
         else if (isprint (optopt)) {
-          char message[50];
-          sprintf(message, "Unknown option -%c. Terminating.", optopt);
-          puts(message);
-          printShortHelpMessage();
-          buildAndAddErrorMessage(message, programName, sValue);
-          if(!saveLog(filename)) {
-            printf("Unable to save to specified file. Saving to default file.\n");
-            saveLog(defaultFileName);
-          }
-          clearLog();
+          fprintf(stderr, "Unknown option -%c. Terminating.", optopt);
           return 1;
         }
         else {
           printShortHelpMessage();
-          char message[50];
-          sprintf(message, "Unknown option character `\\x%x'. Terminating.", optopt);
-          buildAndAddErrorMessage(message, programName, sValue);
-          if(!saveLog(filename)) {
-            printf("Unable to save to specified file. Saving to default file.\n");
-            saveLog(defaultFileName);
-          }
-          clearLog();
           return 1; 
         }
       }
 
-  if(!saveLog(filename)) {
-      printf("Unable to save to specified file. Saving to default file.\n");
-      saveLog(defaultFileName);
-    }
-  clearLog();
-
+  
   for (index = optind; index < argc; index++) {
-    char message[21 + sizeof(argv[index])];
-    sprintf(message, "Non-option argument %s", argv[index]);
-    buildAndAddErrorMessage(message, programName, sValue);
+    fprintf(stderr, "Non-option argument %s", argv[index]);
     nonOptArgFlag = 1;
   }
 
   if(nonOptArgFlag) {
     printShortHelpMessage();
-    if(!saveLog(filename)) {
-      printf("Unable to save to specified file. Saving to default file.\n");
-      saveLog(defaultFileName);
-    }
-    clearLog();
     return 1;
   }
 
@@ -132,11 +91,6 @@ int main (int argc, char **argv)
   if(!hflag) {
 
   }
-  if(!saveLog(filename)) {
-      printf("Unable to save to specified file. Saving to default file.\n");
-      saveLog(defaultFileName);
-  }
-  clearLog();
 
   return 0;
 }
