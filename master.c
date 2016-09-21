@@ -16,7 +16,7 @@ int main (int argc, char **argv)
   int sValue = 5;
   int iValue = 3;
   int tValue = 20;
-  char *filename = "logfile.txt";
+  char *filename = "test.out";
   char *defaultFileName = "logfile.txt";
   char *programName = argv[0];
   char *option = NULL;
