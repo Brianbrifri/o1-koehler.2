@@ -10,7 +10,7 @@
 
 //#include "logger.h"
 
-void alarmHandler(int);
+void interruptHandler(int);
 void processDestroyer(void);
 void printHelpMessage(void);
 void printShortHelpMessage(void);
@@ -40,6 +40,7 @@ int main (int argc, char **argv)
     {}
   };
   
+  //process arguments
   opterr = 0;
   while ((c = getopt_long (argc, argv, short_options, long_options, NULL)) != -1)
     switch (c)
@@ -91,16 +92,21 @@ int main (int argc, char **argv)
       }
 
   
+  //print out all non-option arguments
   for (index = optind; index < argc; index++) {
     fprintf(stderr, "Non-option argument %s\n", argv[index]);
     nonOptArgFlag = 1;
   }
 
+  //if above printed out, print short help message
+  //and return from process
   if(nonOptArgFlag) {
     printShortHelpMessage();
     return 0;
   }
 
+  //if help flag was activated, print help message
+  //then return from process
   if(hflag) {
     printHelpMessage();
     return 0;
@@ -109,7 +115,8 @@ int main (int argc, char **argv)
   //START PROCESS MANAGEMENT 
   //
   //Initialize the alarm handler
-  signal(SIGALRM, alarmHandler);
+  signal(SIGALRM, interruptHandler);
+  signal(SIGINT, interruptHandler);
   //set the alarm to tValue seconds
   alarm(tValue);
 
@@ -136,11 +143,14 @@ int main (int argc, char **argv)
     printf("Master: My child %d has died....\n", childPid);
   }
  
+  printf("Where I will be cleaning shared memory\n");
+
   return 0;
 }
 
 //alarm handler function that calls the process destroyer and the memory free-er
-void alarmHandler(int SIG){
+void interruptHandler(int SIG){
+  signal(SIG, SIG_IGN);
   processDestroyer();
 }
 
@@ -149,12 +159,7 @@ void alarmHandler(int SIG){
 //not the parent
 void processDestroyer() {
   printf("processDestroyer() called\n");
-  signal(SIGQUIT, SIG_IGN);
   kill(-getpgrp(), SIGQUIT);
-//  printf("Waiting 2 seconds before SIGKILL \n");
-//  sleep(2);
-//  signal(SIGINT, SIG_IGN);
-//  kill(-getpgrp(), SIGKILL);
 }
 
 //Long help message

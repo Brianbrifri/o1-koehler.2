@@ -10,6 +10,7 @@
 
 
 void alarmHandler(int);
+void sigquitHandler(int);
 
 int main (int argc, char **argv) {
   int iValue = 3;
@@ -36,6 +37,7 @@ int main (int argc, char **argv) {
         return -1;
     }
   
+  signal(SIGQUIT, sigquitHandler);
   int i;
   for(i = 0; i < iValue; i++) {
     fprintf(stderr,"    Slave %d about to enter critical section...\n", getpid());
@@ -48,4 +50,10 @@ int main (int argc, char **argv) {
   
 }
 
+void sigquitHandler(int sig) {
+  printf("Child %d has received sigquit signal\n", getpid());
+  kill(getpid(), SIGTERM);
+  sleep(1);
+  kill(getpid(), SIGKILL);
+}
 
