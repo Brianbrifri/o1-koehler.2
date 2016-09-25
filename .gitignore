@@ -1,0 +1,6 @@
+test.out
+*.o
+a.out
+test.c
+slavedriver
+slaverunner

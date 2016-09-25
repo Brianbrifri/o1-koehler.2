@@ -11,6 +11,7 @@
 #include "logger.h"
 
 void alarmHandler(int);
+void waitFunction(int);
 
 int main (int argc, char **argv)
 {
@@ -53,8 +54,11 @@ int main (int argc, char **argv)
         break;
       case 'i':
         iValue = atoi(optarg);
+        break;
       case 't':
         tValue = atoi(optarg);  
+        printf("%d\n", tValue);
+        break;
       case '?':
         if (optopt == 's') {
           fprintf(stderr, "Option -%c requires an argument. Using default value.\n", optopt);
@@ -98,21 +102,8 @@ int main (int argc, char **argv)
     return 0;
   }
 
-  alarm(tValue - 10);
-  time_t startTime = time(NULL);
-  time_t elapsedTime = time(NULL);
-  printf("Before while loop\n");
-  printf("Start time: %d\n", startTime);
-  printf("Elapsed time: %d\n", elapsedTime);
-  printf("Loop time: %d\n", startTime + tValue);
-
-  while(elapsedTime <= startTime + tValue) {
-    long prevTime = elapsedTime;
-    elapsedTime = time(NULL);
-    if(elapsedTime > prevTime) {
-      printf("%d\n", elapsedTime - startTime - 1); 
-    }
-  }
+  alarm(tValue);
+  waitFunction(tValue + 10);
 
   return 0;
 }
@@ -120,4 +111,17 @@ int main (int argc, char **argv)
 void alarmHandler(int SIG){
   signal(SIGALRM, SIG_IGN);
   kill(getpgrp(), SIGKILL);
+}
+
+void waitFunction(int tValue) {
+  time_t startTime = time(NULL);
+  time_t elapsedTime = time(NULL);
+
+  while(elapsedTime <= startTime + tValue) {
+    long prevTime = elapsedTime;
+    elapsedTime = time(NULL);
+    if(elapsedTime > prevTime) {
+      printf("Master time: %d\n", elapsedTime - startTime - 1); 
+    }
+  }
 }
