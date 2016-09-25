@@ -112,8 +112,8 @@ int main (int argc, char **argv)
     return 0;
   }
 
-  //START PROCESS MANAGEMENT 
-  //
+  //****START PROCESS MANAGEMENT****
+  
   //Initialize the alarm handler
   signal(SIGALRM, interruptHandler);
   signal(SIGINT, interruptHandler);
@@ -148,13 +148,20 @@ int main (int argc, char **argv)
   return 0;
 }
 
-//alarm handler function that calls the process destroyer and the memory free-er
+//Interrupt handler function that calls the process destroyer
+//Only ignore SIGQUIT signal, not SIGALRM  or SIGINT
 void interruptHandler(int SIG){
-  signal(SIG, SIG_IGN);
+  signal(SIGQUIT, SIG_IGN);
+  if(SIG == SIGINT) {
+    printf("\nCTRL-C received. Calling shutdown functions.\n");
+  }
+  if(SIG == SIGALRM) {
+    printf("Master has timed out. Initiating shutdown sequence.\n");
+  }
   processDestroyer();
 }
 
-//process destroyer. Parent ignores the SIGQUIT signal
+//Process destroyer. 
 //kill calls SIGQUIT on the groupid to kill the children but
 //not the parent
 void processDestroyer() {
