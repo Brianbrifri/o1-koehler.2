@@ -10,7 +10,6 @@
 
 
 void alarmHandler(int);
-void waitFunction(void);
 
 int main (int argc, char **argv) {
   int iValue = 3;
@@ -40,24 +39,13 @@ int main (int argc, char **argv) {
   int i;
   for(i = 0; i < iValue; i++) {
     fprintf(stderr,"    Slave %d about to enter critical section...\n", getpid());
-    waitFunction();
+    sleep(1);
     fprintf(stderr,"    Slave %d incrementing variable...\n", getpid());
     fprintf(stderr,"    Slave %d writing to file...\n", getpid());
-    waitFunction();
+    sleep(1);
     fprintf(stderr,"    Slave %d about to exit critical section...\n", getpid());
   }
   
 }
 
-void waitFunction() {
-  time_t startTime = time(NULL);
-  time_t elapsedTime = time(NULL);
 
-  while(elapsedTime <= startTime + 2) {
-    long prevTime = elapsedTime;
-    elapsedTime = time(NULL);
-    if(elapsedTime > prevTime) {
-      printf("    Slave time: %d\n", elapsedTime - startTime - 1); 
-    }
-  }
-}

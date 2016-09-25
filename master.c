@@ -11,9 +11,9 @@
 //#include "logger.h"
 
 void alarmHandler(int);
-void waitFunction(int);
 void printHelpMessage(void);
 void printShortHelpMessage(void);
+pid_t myPid, childPid;
 
 int main (int argc, char **argv)
 {
@@ -30,6 +30,8 @@ int main (int argc, char **argv)
   char *option = NULL;
   char *short_options = "hs:l:i:t:";
   int c;
+  int status;
+
 
   struct option long_options[] = {
     {"help", no_argument, 0, 'h'},
@@ -59,7 +61,6 @@ int main (int argc, char **argv)
         break;
       case 't':
         tValue = atoi(optarg);  
-        printf("%d\n", tValue);
         break;
       case '?':
         if (optopt == 's') {
@@ -104,28 +105,40 @@ int main (int argc, char **argv)
     return 0;
   }
 
-  alarm(tValue);
-  waitFunction(tValue + 10);
+  //START PROCESS MANAGEMENT
 
+  signal(SIGALRM, alarmHandler);
+  alarm(tValue);
+
+  int j;
+  for(j = 1; j <= sValue; j++) {
+  
+    if((childPid = fork()) < 0) {
+      perror("Fork Failure");
+      exit(1);
+    }
+    if(childPid == 0) {
+      childPid = getpid();
+      pid_t gpid = getpgrp();
+      printf("    I'm a real child! My id is %d and my grpid is %d\n", childPid, gpid);
+      execl("slaverunner", "slaverunner", 0, 0);
+      printf("    Should only print this in error\n");
+    }
+  }
+
+  for(j = 1; j <= sValue; j++) {
+    childPid = wait(&status);
+    printf("Master: My child %d has died....\n", childPid);
+  }
+ 
   return 0;
 }
 
 void alarmHandler(int SIG){
   signal(SIGALRM, SIG_IGN);
-  kill(getpgrp(), SIGKILL);
-}
-
-void waitFunction(int tValue) {
-  time_t startTime = time(NULL);
-  time_t elapsedTime = time(NULL);
-
-  while(elapsedTime <= startTime + tValue) {
-    long prevTime = elapsedTime;
-    elapsedTime = time(NULL);
-    if(elapsedTime > prevTime) {
-      printf("Master time: %d\n", elapsedTime - startTime - 1); 
-    }
-  }
+  kill(-getpgrp(), SIGTERM);
+  sleep(2);
+  kill(-getpgrp(), SIGKILL);
 }
 
 void printHelpMessage(void) {
