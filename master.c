@@ -8,10 +8,12 @@
 #include <sys/types.h>
 #include <time.h>
 
-#include "logger.h"
+//#include "logger.h"
 
 void alarmHandler(int);
 void waitFunction(int);
+void printHelpMessage(void);
+void printShortHelpMessage(void);
 
 int main (int argc, char **argv)
 {
@@ -125,3 +127,25 @@ void waitFunction(int tValue) {
     }
   }
 }
+
+void printHelpMessage(void) {
+    printf("\nThank you for using the help menu!\n");
+    printf("The following is a helpful guide to enable you to use this\n");
+    printf("slavedriver program to the best of your ability!\n\n");
+    printf("-h, --help: Prints this help message.\n");
+    printf("-s: Allows you to set the number of slave process to run.\n");
+    printf("\tThe default value is 5.\n");
+    printf("-l: Allows you to set the filename for the logger so the aliens can see how bad you mess up.\n");
+    printf("\tThe default value is test.out.\n");
+    printf("-i: Allows you to set the number of times each slave enters the critical section of code.\n");
+    printf("\tThe default value is 3.\n");
+    printf("-t: Allows you set the wait time for the master process until it kills the slaves\n");
+    printf("\tThe default value is 20\n");
+}
+
+void printShortHelpMessage(void) {
+  printf("\nAcceptable options are:\n");
+  printf("[-h], [--help], [-l][required_arg], [-s][required_arg], [-i][required_arg], [-t][required_arg]\n\n");
+}
+
+

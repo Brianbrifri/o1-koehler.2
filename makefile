@@ -1,13 +1,9 @@
 all: slavedriver slaverunner
-masterObjects = master.o logger.o
+masterObjects = master.o 
 slaveObjects = slave.o
 
-slavedriver: $(masterObjects)
-	gcc -g -o slavedriver $(masterObjects)
-master.o: master.c logger.h
-	gcc -g -c master.c
-logger.o: logger.c logger.h
-	gcc -g -c logger.c
+slavedriver: master.c
+	gcc -g -o slavedriver master.c
 
 slaverunner: slave.c
 	gcc -g -o slaverunner slave.c
