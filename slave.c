@@ -13,7 +13,7 @@
 void alarmHandler(int);
 void sigquitHandler(int);
 void zombieKiller(int);
-volatile int sigNotReceived = 1;
+volatile sig_atomic_t sigNotReceived = 1;
 pid_t myPid;
 
 int main (int argc, char **argv) {
