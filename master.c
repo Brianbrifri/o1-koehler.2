@@ -152,6 +152,7 @@ int main (int argc, char **argv)
 //Only ignore SIGQUIT signal, not SIGALRM  or SIGINT
 void interruptHandler(int SIG){
   signal(SIGQUIT, SIG_IGN);
+//  signal(SIGINT, SIG_IGN);
   if(SIG == SIGINT) {
     printf("\nCTRL-C received. Calling shutdown functions.\n");
   }
