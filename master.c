@@ -43,8 +43,7 @@ int main (int argc, char **argv)
   //process arguments
   opterr = 0;
   while ((c = getopt_long (argc, argv, short_options, long_options, NULL)) != -1)
-    switch (c)
-      {
+    switch (c) {
       case 'h':
         hflag = 1;
         break;
@@ -132,7 +131,7 @@ int main (int argc, char **argv)
       childPid = getpid();
       pid_t gpid = getpgrp();
       printf("    I'm a real child! My id is %d and my grpid is %d\n", childPid, gpid);
-      execl("slaverunner", "slaverunner", 0, 0);
+      execl("slaverunner", "slaverunner", 0, (char *)0);
       printf("    Should only print this in error\n");
     }
   }
