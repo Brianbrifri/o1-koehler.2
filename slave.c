@@ -17,6 +17,7 @@ volatile sig_atomic_t sigNotReceived = 1;
 pid_t myPid;
 
 int main (int argc, char **argv) {
+  srand(time(0));
   int iValue = 3;
   int tValue = 30;
   char *fileName;
@@ -62,10 +63,12 @@ int main (int argc, char **argv) {
   while(i < iValue && sigNotReceived) {
     fprintf(stderr,"    Slave %d entrance %d\n", myPid, i + 1);
     fprintf(stderr,"    Slave %d about to enter critical section...\n", myPid);
-    sleep(1);
+    int random = rand() % 3;
+    sleep(random);
     fprintf(stderr,"    Slave %d incrementing variable...\n", myPid);
     fprintf(stderr,"    Slave %d writing to file...\n", myPid);
-    sleep(1);
+    random = rand() % 3;
+    sleep(random);
     fprintf(stderr,"    Slave %d about to exit critical section...\n", myPid);
     i++;
   }
