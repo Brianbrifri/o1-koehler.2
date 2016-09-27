@@ -20,10 +20,11 @@ int main (int argc, char **argv) {
   srand(time(0));
   int iValue = 3;
   int tValue = 30;
+  int nValue = 0;
   char *fileName;
   char *defaultFileName = "test.out";
   char *option = NULL;
-  char *short_options = "i:l:t:";
+  char *short_options = "i:l:n:t:";
   int c;
   myPid = getpid();
 
@@ -32,13 +33,17 @@ int main (int argc, char **argv) {
   signal(SIGINT, SIG_IGN);
 
   //get options from parent process
-  while((c = getopt_long (argc, argv, short_options, NULL, NULL)) != -1) 
+  opterr = 0;
+  while((c = getopt(argc, argv, short_options)) != -1) 
     switch (c) {
       case 'i':
         iValue = atoi(optarg);
         break;
       case 'l':
         fileName = optarg;
+        break;
+      case 'n':
+        nValue = atoi(optarg);
         break;
       case 't':
         tValue = atoi(optarg) + 10;
@@ -47,6 +52,7 @@ int main (int argc, char **argv) {
         fprintf(stderr, "    Arguments were not passed correctly to slave %d. Terminating.", myPid);
         return -1;
     }
+  
   
   //set the sigquitHandler for the SIGQUIT signal
   signal(SIGQUIT, sigquitHandler);
@@ -61,19 +67,19 @@ int main (int argc, char **argv) {
 
   //While loop to write iValue times as long as the quit signal has not been received
   while(i < iValue && sigNotReceived) {
-    fprintf(stderr,"    Slave %d entrance %d\n", myPid, i + 1);
-    fprintf(stderr,"    Slave %d about to enter critical section...\n", myPid);
+    fprintf(stderr,"    Slave %d entrance %d\n", nValue, i + 1);
+    fprintf(stderr,"    Slave %d about to enter critical section...\n", nValue);
     int random = rand() % 3;
     sleep(random);
-    fprintf(stderr,"    Slave %d incrementing variable...\n", myPid);
-    fprintf(stderr,"    Slave %d writing to file...\n", myPid);
+    fprintf(stderr,"    Slave %d incrementing variable...\n", nValue);
+    fprintf(stderr,"    Slave %d writing to file...\n", nValue);
     random = rand() % 3;
     sleep(random);
-    fprintf(stderr,"    Slave %d about to exit critical section...\n", myPid);
+    fprintf(stderr,"    Slave %d about to exit critical section...\n", nValue);
     i++;
   }
 
-  printf("    Slave %d cleaning shared memory.\n", myPid);
+  printf("    Slave %d cleaning shared memory.\n", nValue);
   kill(myPid, SIGTERM);
   sleep(1);
   kill(myPid, SIGKILL);

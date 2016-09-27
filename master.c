@@ -23,7 +23,7 @@ int main (int argc, char **argv)
   int index;
   int sValue = 5;
   int iValue = 3;
-  int tValue = 10;
+  int tValue = 20;
   const int MAXSLAVE = 20;
   char *filename = "test.out";
   char *defaultFileName = "test.out";
@@ -119,6 +119,11 @@ int main (int argc, char **argv)
   //set the alarm to tValue seconds
   alarm(tValue);
 
+
+  char *nArg = malloc(20);
+  char *iArg = malloc(20);
+  char *tArg = malloc(20);
+
   //Fork sValue processes
   int j;
   for(j = 1; j <= sValue; j++) {
@@ -130,11 +135,19 @@ int main (int argc, char **argv)
     if(childPid == 0) {
       childPid = getpid();
       pid_t gpid = getpgrp();
+      sprintf(nArg, "%d", j);
+      sprintf(iArg, "%d", iValue);
+      sprintf(tArg, "%d", tValue);
+      char *slaveOptions[] = {"./slaverunner", "-i", iArg, "-l", filename, "-n", nArg, "-t", tArg, (char *)0};
       printf("    I'm a real child! My id is %d and my grpid is %d\n", childPid, gpid);
-      execl("slaverunner", "slaverunner", 0, (char *)0);
+      execv("./slaverunner", slaveOptions);
       printf("    Should only print this in error\n");
     }
   }
+
+  free(nArg);
+  free(tArg);
+  free(iArg);
 
   //Wait for sValue number of processes to finish
   for(j = 1; j <= sValue; j++) {
