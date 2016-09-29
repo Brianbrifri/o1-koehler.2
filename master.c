@@ -6,18 +6,26 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include <time.h>
 
 //#include "logger.h"
 
 void interruptHandler(int);
 void processDestroyer(void);
+int detachAndRemove(int, int*);
 void printHelpMessage(void);
 void printShortHelpMessage(void);
 pid_t myPid, childPid;
 
 int main (int argc, char **argv)
 {
+  int shmid;
+  int *sharedInt = 0;
+  key_t key = 120983464;
   int hflag = 0;
   int nonOptArgFlag = 0;
   int index;
@@ -119,6 +127,16 @@ int main (int argc, char **argv)
   //set the alarm to tValue seconds
   alarm(tValue);
 
+  if((shmid = shmget(key, sizeof(int), IPC_CREAT | 0777)) == -1) {
+    perror("Bad shmget allocation");
+  }
+  if((sharedInt = (int *)shmat(shmid, NULL, 0)) == (void *) -1) {
+    perror("Could not attach shared mem");
+    return 1;
+  }
+  printf("%d\n", *sharedInt);
+//  *sharedInt = 5;
+//  printf("%d\n", *sharedInt);
 
   char *nArg = malloc(20);
   char *iArg = malloc(20);
@@ -155,7 +173,10 @@ int main (int argc, char **argv)
     printf("Master: My child %d has died....\n", childPid);
   }
  
-  printf("Where I will be cleaning shared memory\n");
+  if(detachAndRemove(shmid, sharedInt) == -1) {
+    perror("Failed to destroy shared memory segment");
+    return -1;
+  }
 
   return 0;
 }
@@ -180,6 +201,22 @@ void interruptHandler(int SIG){
 void processDestroyer() {
   printf("processDestroyer() called\n");
   kill(-getpgrp(), SIGQUIT);
+}
+
+int detachAndRemove(int shmid, int *shmaddr) {
+  printf("Detach and Remove Shared Memory\n");
+  int error = 0;
+  if(shmdt(shmaddr) == -1) {
+    error = errno;
+  }
+  if((shmctl(shmid, IPC_RMID, NULL) == -1) && !error) {
+    error = errno;
+  }
+  if(!error) {
+    return 0;
+  }
+
+  return -1;
 }
 
 //Long help message
