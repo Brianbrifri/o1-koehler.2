@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
 #include <signal.h>
 #include <time.h>
 
@@ -21,10 +24,12 @@ int main (int argc, char **argv) {
   int iValue = 3;
   int tValue = 30;
   int nValue = 0;
+  int shmid = 0;
+  int *sharedInt;
   char *fileName;
   char *defaultFileName = "test.out";
   char *option = NULL;
-  char *short_options = "i:l:n:t:";
+  char *short_options = "i:l:m:n:t:";
   int c;
   myPid = getpid();
 
@@ -42,6 +47,9 @@ int main (int argc, char **argv) {
       case 'l':
         fileName = optarg;
         break;
+      case 'm':
+        shmid = atoi(optarg);
+        break;
       case 'n':
         nValue = atoi(optarg);
         break;
@@ -50,9 +58,15 @@ int main (int argc, char **argv) {
         break;
       case '?':
         fprintf(stderr, "    Arguments were not passed correctly to slave %d. Terminating.", myPid);
-        return -1;
+        exit(-1);
     }
-  
+
+  if((sharedInt = (int *)shmat(shmid, NULL, 0)) == (void *) -1) {
+    perror("Could not attach shared mem");
+    exit(1);
+  }
+  fprintf(stderr, "    Slave %d attached to shared memory location %d\n", nValue, shmid);
+
   
   //set the sigquitHandler for the SIGQUIT signal
   signal(SIGQUIT, sigquitHandler);
@@ -79,7 +93,12 @@ int main (int argc, char **argv) {
     i++;
   }
 
-  printf("    Slave %d cleaning shared memory.\n", nValue);
+  if(shmdt(sharedInt) == -1) {
+    perror("Slave tried to detach shared memory");
+  }
+
+  fprintf(stderr, "    Slave %d detached from shared memory location %d\n", nValue, shmid);
+
   kill(myPid, SIGTERM);
   sleep(1);
   kill(myPid, SIGKILL);

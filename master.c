@@ -135,9 +135,10 @@ int main (int argc, char **argv)
     return 1;
   }
   printf("%d\n", *sharedInt);
-//  *sharedInt = 5;
-//  printf("%d\n", *sharedInt);
+  *sharedInt = 5;
+  printf("%d\n", *sharedInt);
 
+  char *mArg = malloc(20);
   char *nArg = malloc(20);
   char *iArg = malloc(20);
   char *tArg = malloc(20);
@@ -153,16 +154,18 @@ int main (int argc, char **argv)
     if(childPid == 0) {
       childPid = getpid();
       pid_t gpid = getpgrp();
+      sprintf(mArg, "%d", shmid);
       sprintf(nArg, "%d", j);
       sprintf(iArg, "%d", iValue);
       sprintf(tArg, "%d", tValue);
-      char *slaveOptions[] = {"./slaverunner", "-i", iArg, "-l", filename, "-n", nArg, "-t", tArg, (char *)0};
+      char *slaveOptions[] = {"./slaverunner", "-i", iArg, "-l", filename, "-m", mArg, "-n", nArg, "-t", tArg, (char *)0};
       printf("    I'm a real child! My id is %d and my grpid is %d\n", childPid, gpid);
       execv("./slaverunner", slaveOptions);
       printf("    Should only print this in error\n");
     }
   }
 
+  free(mArg);
   free(nArg);
   free(tArg);
   free(iArg);
@@ -204,7 +207,7 @@ void processDestroyer() {
 }
 
 int detachAndRemove(int shmid, int *shmaddr) {
-  printf("Detach and Remove Shared Memory\n");
+  printf("Master: Detach and Remove Shared Memory\n");
   int error = 0;
   if(shmdt(shmaddr) == -1) {
     error = errno;
