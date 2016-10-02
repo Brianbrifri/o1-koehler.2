@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <time.h>
 
+#include "struct.h"
 
 void alarmHandler(int);
 void sigquitHandler(int);
@@ -25,6 +26,7 @@ int main (int argc, char **argv) {
   int tValue = 30;
   int nValue = 0;
   int shmid = 0;
+  data *sharedStates;
   int *sharedInt;
   char *fileName;
   char *defaultFileName = "test.out";
@@ -32,7 +34,6 @@ int main (int argc, char **argv) {
   char *short_options = "i:l:m:n:t:";
   int c;
   myPid = getpid();
-
 
   //Ignore SIGINT so that it can be handled below
   signal(SIGINT, SIG_IGN);
@@ -61,13 +62,14 @@ int main (int argc, char **argv) {
         exit(-1);
     }
 
-  if((sharedInt = (int *)shmat(shmid, NULL, 0)) == (void *) -1) {
+  if((sharedStates = (data *)shmat(shmid, NULL, 0)) == (void *) -1) {
     perror("Could not attach shared mem");
     exit(1);
   }
   fprintf(stderr, "    Slave %d attached to shared memory location %d\n", nValue, shmid);
 
   
+
   //set the sigquitHandler for the SIGQUIT signal
   signal(SIGQUIT, sigquitHandler);
 
@@ -78,6 +80,7 @@ int main (int argc, char **argv) {
   alarm(tValue);
 
   int i = 0;
+  printf("%d\n", sharedStates->turn);
 
   //While loop to write iValue times as long as the quit signal has not been received
   while(i < iValue && sigNotReceived) {
@@ -93,8 +96,8 @@ int main (int argc, char **argv) {
     i++;
   }
 
-  if(shmdt(sharedInt) == -1) {
-    perror("Slave tried to detach shared memory");
+  if(shmdt(sharedStates) == -1) {
+    perror("Slave could not detach shared memory");
   }
 
   fprintf(stderr, "    Slave %d detached from shared memory location %d\n", nValue, shmid);
@@ -108,7 +111,7 @@ int main (int argc, char **argv) {
 //This handles SIGQUIT being sent from parent process
 //It sets the volatile int to 0 so that the while loop will exit. 
 void sigquitHandler(int sig) {
-  printf("    Slave %d has received signal %s (%d)\n", myPid, strsignal(sig), sig);
+  printf("    PID %d has received signal %s (%d)\n", myPid, strsignal(sig), sig);
   sigNotReceived = 0;
 }
 

@@ -12,11 +12,11 @@
 #include <errno.h>
 #include <time.h>
 
-//#include "logger.h"
+#include "struct.h"
 
 void interruptHandler(int);
 void processDestroyer(void);
-int detachAndRemove(int, int*);
+int detachAndRemove(int, data*);
 void printHelpMessage(void);
 void printShortHelpMessage(void);
 pid_t myPid, childPid;
@@ -25,6 +25,7 @@ int main (int argc, char **argv)
 {
   int shmid;
   int *sharedInt = 0;
+  data *sharedStates;
   key_t key = 120983464;
   int hflag = 0;
   int nonOptArgFlag = 0;
@@ -127,24 +128,24 @@ int main (int argc, char **argv)
   //set the alarm to tValue seconds
   alarm(tValue);
 
-  if((shmid = shmget(key, sizeof(int), IPC_CREAT | 0777)) == -1) {
+  if((shmid = shmget(key, sizeof(data), IPC_CREAT | 0777)) == -1) {
     perror("Bad shmget allocation");
   }
-  if((sharedInt = (int *)shmat(shmid, NULL, 0)) == (void *) -1) {
+  if((sharedStates = (data *)shmat(shmid, NULL, 0)) == (void *) -1) {
     perror("Could not attach shared mem");
     return 1;
   }
-  printf("%d\n", *sharedInt);
-  *sharedInt = 5;
-  printf("%d\n", *sharedInt);
-
+  
   char *mArg = malloc(20);
   char *nArg = malloc(20);
   char *iArg = malloc(20);
   char *tArg = malloc(20);
 
-  //Fork sValue processes
+  sharedStates->turn = 6;
+  printf("sharedstates turn: %d\n", sharedStates->turn);
+
   int j;
+  //Fork sValue processes
   for(j = 1; j <= sValue; j++) {
   
     if((childPid = fork()) < 0) {
@@ -176,7 +177,7 @@ int main (int argc, char **argv)
     printf("Master: My child %d has died....\n", childPid);
   }
  
-  if(detachAndRemove(shmid, sharedInt) == -1) {
+  if(detachAndRemove(shmid, sharedStates) == -1) {
     perror("Failed to destroy shared memory segment");
     return -1;
   }
@@ -206,7 +207,7 @@ void processDestroyer() {
   kill(-getpgrp(), SIGQUIT);
 }
 
-int detachAndRemove(int shmid, int *shmaddr) {
+int detachAndRemove(int shmid, data *shmaddr) {
   printf("Master: Detach and Remove Shared Memory\n");
   int error = 0;
   if(shmdt(shmaddr) == -1) {
