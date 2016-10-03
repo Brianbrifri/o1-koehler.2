@@ -158,7 +158,7 @@ int main (int argc, char **argv) {
   }
   
   //Do some final printing based on if all iterations were accomplished
-  if(sigNotReceived) {
+  if(i == numOfWrites) {
     fprintf(stderr, "    Slave %d %sCOMPLETED WORK%s\n", processNumber + 1, GREEN, NRM);
   }
   else {
