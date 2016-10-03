@@ -22,9 +22,9 @@ pid_t myPid;
 
 int main (int argc, char **argv) {
   srand(time(0));
-  int iValue = 3;
-  int tValue = 30;
-  int nValue = 0;
+  int numOfWrites = 3;
+  int timeoutValue = 30;
+  int processNumber = 0;
   int shmid = 0;
   data *sharedStates;
   int *sharedInt;
@@ -44,7 +44,7 @@ int main (int argc, char **argv) {
   while((c = getopt(argc, argv, short_options)) != -1) 
     switch (c) {
       case 'i':
-        iValue = atoi(optarg);
+        numOfWrites = atoi(optarg);
         break;
       case 'l':
         fileName = optarg;
@@ -53,10 +53,10 @@ int main (int argc, char **argv) {
         shmid = atoi(optarg);
         break;
       case 'n':
-        nValue = atoi(optarg);
+        processNumber = atoi(optarg);
         break;
       case 't':
-        tValue = atoi(optarg) + 10;
+        timeoutValue = atoi(optarg) + 10;
         break;
       case '?':
         fprintf(stderr, "    Arguments were not passed correctly to slave %d. Terminating.", myPid);
@@ -64,10 +64,10 @@ int main (int argc, char **argv) {
     }
 
   if((sharedStates = (data *)shmat(shmid, NULL, 0)) == (void *) -1) {
-    perror("Could not attach shared mem");
+    perror("    Could not attach shared mem");
     exit(1);
   }
-  fprintf(stderr, "    Slave %d attached to shared memory location %d\n", nValue, shmid);
+  fprintf(stderr, "    Slave %d attached to shared memory location %d\n", processNumber + 1, shmid);
 
   
 
@@ -78,90 +78,89 @@ int main (int argc, char **argv) {
   //so that the child will be killed if parents gets killed
   //and child becomes slave of init
   signal(SIGALRM, zombieKiller);
-  alarm(tValue);
+  alarm(timeoutValue);
 
   int i = 0;
   int j;
   int random;
 
-  //While loop to write iValue times as long as the quit signal has not been received
-  while(i < iValue && sigNotReceived) {
+  //While loop to write numOfWrites times as long as the quit signal has not been received
+  while(i < numOfWrites && sigNotReceived) {
     do {
-      fprintf(stderr,"    Slave %d entrance %d\n", nValue, i + 1);
 
       //Raise my flag
-      sharedStates->flag[nValue] = want_in;
+      sharedStates->flag[processNumber] = want_in;
       //Set local variable
       j = sharedStates->turn;
 
       //Wait until it's my turn
-      while(j != nValue) {
+      while(j != processNumber) {
         j = (sharedStates->flag[j] != idle) ? sharedStates->turn : (j + 1) % sharedStates->totalProcesses;
       }
 
 
       //Declare intentions to enter critical section
-      sharedStates->flag[nValue] = in_cs;
-      random = rand() % 3;
-      printf("Random sleep value: %d\n", random);
-      sleep(random);
-
+      sharedStates->flag[processNumber] = in_cs;
       //Check that no one else is in the critical section
       for(j = 0; j < sharedStates->totalProcesses; j++) {
-        if((j != nValue) && (sharedStates->flag[j] == in_cs)) {
+        if((j != processNumber) && (sharedStates->flag[j] == in_cs)) {
           break;
         }
       }
 
-    }while ((j < sharedStates->totalProcesses) || (sharedStates->turn != nValue && sharedStates->flag[j] != idle));
+    }while ((j < sharedStates->totalProcesses) || (sharedStates->turn != processNumber && sharedStates->flag[sharedStates->turn] != idle));
 
     //Increment shared variable
     sharedStates->sharedInt++;
-    fprintf(stderr,"    Slave %d about to enter critical section...\n", nValue);
-
+    fprintf(stderr,"    Slave %d about to enter critical section...\n", processNumber + 1);
+    
     //Assign turn to self and enter critical section
-    sharedStates->turn = nValue;
+    sharedStates->turn = processNumber;
 
     file = fopen(fileName, "a");
     if(!file) {
-      perror("Error opening file");
+      perror("    Error opening file");
       exit(-1);
     }
-    
-    fprintf(file,"    File modified by process number %d at the time with shared number %d\n", nValue + 1, sharedStates->sharedInt);
-    if(fclose(file)) {
-      perror("Error closing file");
-    }
 
-    random = rand() % 3;
-    printf("Random sleep value: %d\n", random);
-    sleep(random);
+    time_t times = time(NULL);
+    
+    fprintf(file,"    File modified by process number %d at time %d with shared number %d\n", processNumber + 1, times, sharedStates->sharedInt);
+
+    fprintf(stderr,"    Slave %d exiting critical section...\n", processNumber + 1);
+
+    if(fclose(file)) {
+      perror("    Error closing file");
+    }
 
     //Exit section
     j = (sharedStates->turn + 1) % sharedStates->totalProcesses;
 
     while(sharedStates->flag[j] == idle) {
       j = (j + 1) % sharedStates->totalProcesses;
+      //printf("Checking j after CS: %d\n", j);
     }
 
     //Assign turn to next waiting process and change own flag to idle
     sharedStates->turn = j;
-    sharedStates->flag[nValue] = idle;
-
-    fprintf(stderr,"    Slave %d about to exit critical section...\n", nValue);
-    i++;
+    sharedStates->flag[processNumber] = idle;
     
+    random = rand() % 9;
+    sleep(random);
+
+    i++;
   }
   
   if(sigNotReceived) {
-    fprintf(stderr, "    Slave %d finished with work\n", nValue);
+    fprintf(stderr, "    Slave %d COMPLETED WORK\n", processNumber + 1);
+  }
+  else {
+    fprintf(stderr, "    Slave %d did NOT complete work\n", processNumber + 1);
   }
 
   if(shmdt(sharedStates) == -1) {
-    perror("Slave could not detach shared memory");
+    perror("    Slave could not detach shared memory");
   }
-
-  fprintf(stderr, "    Slave %d detached from shared memory location %d\n", nValue, shmid);
 
   kill(myPid, SIGTERM);
   sleep(1);
@@ -179,7 +178,7 @@ void sigquitHandler(int sig) {
 //function to kill itself if the alarm goes off,
 //signaling that the parent could not kill it off
 void zombieKiller(int sig) {
-  printf("Slave %d is killing itself\n", myPid);
+  printf("    Slave %d is killing itself due to slave timeout override\n", myPid);
   kill(myPid, SIGTERM);
   sleep(1);
   kill(myPid, SIGKILL);

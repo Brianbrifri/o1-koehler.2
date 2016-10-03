@@ -134,7 +134,7 @@ int main (int argc, char **argv)
   }
   if((sharedStates = (data *)shmat(shmid, NULL, 0)) == (void *) -1) {
     perror("Could not attach shared mem");
-    return 1;
+    exit(-1);
   }
 
   file = fopen(filename, "a");
@@ -155,7 +155,7 @@ int main (int argc, char **argv)
   char *tArg = malloc(20);
 
   sharedStates->sharedInt = 0;
-  sharedStates->turn = 1;
+  sharedStates->turn = 0;
   sharedStates->totalProcesses = sValue;
   int j;
   for(j = 0; j < sValue; j++) {
@@ -177,7 +177,6 @@ int main (int argc, char **argv)
       sprintf(iArg, "%d", iValue);
       sprintf(tArg, "%d", tValue);
       char *slaveOptions[] = {"./slaverunner", "-i", iArg, "-l", filename, "-m", mArg, "-n", nArg, "-t", tArg, (char *)0};
-      printf("    I'm a real child! My id is %d and my grpid is %d\n", childPid, gpid);
       execv("./slaverunner", slaveOptions);
       printf("    Should only print this in error\n");
     }
@@ -191,8 +190,8 @@ int main (int argc, char **argv)
   //Wait for sValue number of processes to finish
   for(j = 1; j <= sValue; j++) {
     childPid = wait(&status);
-    printf("Master: My child %d has died....\n", childPid);
-    printf("\n\nMaster: %d children out of %d have died\n\n\n", j, sValue);
+    printf("Master: Child %d has died....\n", childPid);
+    printf("*****Master: %d/%d children are dead*****\n", j, sValue);
   }
  
   if(detachAndRemove(shmid, sharedStates) == -1) {
