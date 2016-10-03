@@ -19,6 +19,7 @@ void sigquitHandler(int);
 void zombieKiller(int);
 volatile sig_atomic_t sigNotReceived = 1;
 pid_t myPid;
+const int QUIT_TIMEOUT = 10;
 
 int main (int argc, char **argv) {
   srand(time(0));
@@ -35,9 +36,6 @@ int main (int argc, char **argv) {
   FILE *file;
   int c;
   myPid = getpid();
-
-  //Ignore SIGINT so that it can be handled below
-  signal(SIGINT, SIG_IGN);
 
   //get options from parent process
   opterr = 0;
@@ -68,14 +66,19 @@ int main (int argc, char **argv) {
     perror("    Could not attach shared mem");
     exit(1);
   }
+  
+  //Ignore SIGINT so that it can be handled below
+  signal(SIGINT, SIG_IGN);
 
-  //set the sigquitHandler for the SIGQUIT signal
+  //Set the sigquitHandler for the SIGQUIT signal
   signal(SIGQUIT, sigquitHandler);
 
+  //Set the alarm handler
+  signal(SIGALRM, zombieKiller);
+  
   //Set an alarm to 10 more seconds than the parent process
   //so that the child will be killed if parents gets killed
   //and child becomes slave of init
-  signal(SIGALRM, zombieKiller);
   alarm(timeoutValue);
 
   int i = 0;
@@ -127,11 +130,11 @@ int main (int argc, char **argv) {
     
     fprintf(file,"    File modified by process number %d at time %lu with shared number %d\n", processNumber + 1, times, sharedStates->sharedInt);
 
-    fprintf(stderr,"    Slave %d exiting critical section...\n", processNumber + 1);
-
     if(fclose(file)) {
       perror("    Error closing file");
     }
+
+    fprintf(stderr,"    Slave %d exiting critical section...\n", processNumber + 1);
 
     //Exit section
     j = (sharedStates->turn + 1) % sharedStates->totalProcesses;
@@ -177,6 +180,8 @@ int main (int argc, char **argv) {
 void sigquitHandler(int sig) {
   printf("    PID %d has received signal %s (%d)\n", myPid, strsignal(sig), sig);
   sigNotReceived = 0;
+  //The slaves have at most 10 more seconds to exit gracefully or they will be SIGTERM'd
+  alarm(QUIT_TIMEOUT);
 }
 
 //function to kill itself if the alarm goes off,
