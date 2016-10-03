@@ -32,6 +32,7 @@ int main (int argc, char **argv) {
   char *defaultFileName = "test.out";
   char *option = NULL;
   char *short_options = "i:l:m:n:t:";
+  FILE *file;
   int c;
   myPid = getpid();
 
@@ -80,20 +81,80 @@ int main (int argc, char **argv) {
   alarm(tValue);
 
   int i = 0;
-  printf("%d\n", sharedStates->turn);
+  int j;
+  int random;
 
   //While loop to write iValue times as long as the quit signal has not been received
   while(i < iValue && sigNotReceived) {
-    fprintf(stderr,"    Slave %d entrance %d\n", nValue, i + 1);
+    do {
+      fprintf(stderr,"    Slave %d entrance %d\n", nValue, i + 1);
+
+      //Raise my flag
+      sharedStates->flag[nValue] = want_in;
+      //Set local variable
+      j = sharedStates->turn;
+
+      //Wait until it's my turn
+      while(j != nValue) {
+        j = (sharedStates->flag[j] != idle) ? sharedStates->turn : (j + 1) % sharedStates->totalProcesses;
+      }
+
+
+      //Declare intentions to enter critical section
+      sharedStates->flag[nValue] = in_cs;
+      random = rand() % 3;
+      printf("Random sleep value: %d\n", random);
+      sleep(random);
+
+      //Check that no one else is in the critical section
+      for(j = 0; j < sharedStates->totalProcesses; j++) {
+        if((j != nValue) && (sharedStates->flag[j] == in_cs)) {
+          break;
+        }
+      }
+
+    }while ((j < sharedStates->totalProcesses) || (sharedStates->turn != nValue && sharedStates->flag[j] != idle));
+
+    //Increment shared variable
+    sharedStates->sharedInt++;
     fprintf(stderr,"    Slave %d about to enter critical section...\n", nValue);
-    int random = rand() % 3;
-    sleep(random);
-    fprintf(stderr,"    Slave %d incrementing variable...\n", nValue);
-    fprintf(stderr,"    Slave %d writing to file...\n", nValue);
+
+    //Assign turn to self and enter critical section
+    sharedStates->turn = nValue;
+
+    file = fopen(fileName, "a");
+    if(!file) {
+      perror("Error opening file");
+      exit(-1);
+    }
+    
+    fprintf(file,"    File modified by process number %d at the time with shared number %d\n", nValue + 1, sharedStates->sharedInt);
+    if(fclose(file)) {
+      perror("Error closing file");
+    }
+
     random = rand() % 3;
+    printf("Random sleep value: %d\n", random);
     sleep(random);
+
+    //Exit section
+    j = (sharedStates->turn + 1) % sharedStates->totalProcesses;
+
+    while(sharedStates->flag[j] == idle) {
+      j = (j + 1) % sharedStates->totalProcesses;
+    }
+
+    //Assign turn to next waiting process and change own flag to idle
+    sharedStates->turn = j;
+    sharedStates->flag[nValue] = idle;
+
     fprintf(stderr,"    Slave %d about to exit critical section...\n", nValue);
     i++;
+    
+  }
+  
+  if(sigNotReceived) {
+    fprintf(stderr, "    Slave %d finished with work\n", nValue);
   }
 
   if(shmdt(sharedStates) == -1) {
@@ -118,6 +179,7 @@ void sigquitHandler(int sig) {
 //function to kill itself if the alarm goes off,
 //signaling that the parent could not kill it off
 void zombieKiller(int sig) {
+  printf("Slave %d is killing itself\n", myPid);
   kill(myPid, SIGTERM);
   sleep(1);
   kill(myPid, SIGKILL);

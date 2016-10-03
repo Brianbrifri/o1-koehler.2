@@ -34,6 +34,7 @@ int main (int argc, char **argv)
   int iValue = 3;
   int tValue = 20;
   const int MAXSLAVE = 20;
+  FILE *file;
   char *filename = "test.out";
   char *defaultFileName = "test.out";
   char *programName = argv[0];
@@ -135,18 +136,34 @@ int main (int argc, char **argv)
     perror("Could not attach shared mem");
     return 1;
   }
+
+  file = fopen(filename, "a");
+  if(!file) {
+    perror("Error opening file");
+    exit(-1);
+  }
   
+  fprintf(file,"***** BEGIN LOG *****\n");
+  if(fclose(file)) {
+    perror("Error closing file");
+  }
+
+ 
   char *mArg = malloc(20);
   char *nArg = malloc(20);
   char *iArg = malloc(20);
   char *tArg = malloc(20);
 
-  sharedStates->turn = 6;
-  printf("sharedstates turn: %d\n", sharedStates->turn);
-
+  sharedStates->sharedInt = 0;
+  sharedStates->turn = 1;
+  sharedStates->totalProcesses = sValue;
   int j;
+  for(j = 0; j < sValue; j++) {
+    sharedStates->flag[j] = idle;
+  }
+
   //Fork sValue processes
-  for(j = 1; j <= sValue; j++) {
+  for(j = 0; j < sValue; j++) {
   
     if((childPid = fork()) < 0) {
       perror("Fork Failure");
@@ -175,6 +192,7 @@ int main (int argc, char **argv)
   for(j = 1; j <= sValue; j++) {
     childPid = wait(&status);
     printf("Master: My child %d has died....\n", childPid);
+    printf("\n\nMaster: %d children out of %d have died\n\n\n", j, sValue);
   }
  
   if(detachAndRemove(shmid, sharedStates) == -1) {
