@@ -63,6 +63,7 @@ int main (int argc, char **argv) {
         exit(-1);
     }
 
+  //Try to attach to shared memory
   if((sharedStates = (data *)shmat(shmid, NULL, 0)) == (void *) -1) {
     perror("    Could not attach shared mem");
     exit(1);
@@ -91,6 +92,8 @@ int main (int argc, char **argv) {
       j = sharedStates->turn;
 
       //Wait until it's my turn
+      //This while loop short circuits on the j process if it is not idle, otherwise it goes to then next process then 
+      //waits on it
       while(j != processNumber) {
         j = (sharedStates->flag[j] != idle) ? sharedStates->turn : (j + 1) % sharedStates->totalProcesses;
       }
@@ -122,7 +125,7 @@ int main (int argc, char **argv) {
 
     time_t times = time(NULL);
     
-    fprintf(file,"    File modified by process number %d at time %d with shared number %d\n", processNumber + 1, times, sharedStates->sharedInt);
+    fprintf(file,"    File modified by process number %d at time %lu with shared number %d\n", processNumber + 1, times, sharedStates->sharedInt);
 
     fprintf(stderr,"    Slave %d exiting critical section...\n", processNumber + 1);
 
@@ -133,21 +136,25 @@ int main (int argc, char **argv) {
     //Exit section
     j = (sharedStates->turn + 1) % sharedStates->totalProcesses;
 
+    //find the next process that is not idle
     while(sharedStates->flag[j] == idle) {
       j = (j + 1) % sharedStates->totalProcesses;
-      //printf("Checking j after CS: %d\n", j);
     }
 
     //Assign turn to next waiting process and change own flag to idle
     sharedStates->turn = j;
     sharedStates->flag[processNumber] = idle;
     
+    //Do a random sleep here so that the process idles in "idle mode"
+    //so that other process can randomly take next turn instead of the 
+    //next numbered process
     random = rand() % 5;
     sleep(random);
 
     i++;
   }
   
+  //Do some final printing based on if all iterations were accomplished
   if(sigNotReceived) {
     fprintf(stderr, "    Slave %d %sCOMPLETED WORK%s\n", processNumber + 1, GREEN, NRM);
   }

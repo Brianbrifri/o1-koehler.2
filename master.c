@@ -123,20 +123,27 @@ int main (int argc, char **argv)
 
   //****START PROCESS MANAGEMENT****//
   
-  //Initialize the alarm handler
+  //Initialize the alarm and CTRL-C handler
   signal(SIGALRM, interruptHandler);
   signal(SIGINT, interruptHandler);
+  //
   //set the alarm to tValue seconds
   alarm(tValue);
 
+  //Try to get the shared mem id from the key with a size of the struct
+  //create it with all perms
   if((shmid = shmget(key, sizeof(data), IPC_CREAT | 0777)) == -1) {
     perror("Bad shmget allocation");
+    exit(-1);
   }
+
+  //Try to attach the struct pointer to shared memory
   if((sharedStates = (data *)shmat(shmid, NULL, 0)) == (void *) -1) {
     perror("Could not attach shared mem");
     exit(-1);
   }
 
+  //Open file and mark the beginning of the new log
   file = fopen(filename, "a");
   if(!file) {
     perror("Error opening file");
@@ -149,15 +156,19 @@ int main (int argc, char **argv)
   }
 
  
+  //Malloc some space for the args going into the slaves
   char *mArg = malloc(20);
   char *nArg = malloc(20);
   char *iArg = malloc(20);
   char *tArg = malloc(20);
 
+  //Initialize some shared memory variables
   sharedStates->sharedInt = 0;
   sharedStates->turn = 0;
   sharedStates->totalProcesses = sValue;
+
   int j;
+  //Set all the flags to idle to begin
   for(j = 0; j < sValue; j++) {
     sharedStates->flag[j] = idle;
   }
@@ -165,10 +176,13 @@ int main (int argc, char **argv)
   //Fork sValue processes
   for(j = 0; j < sValue; j++) {
   
+    //exit on bad fork
     if((childPid = fork()) < 0) {
       perror("Fork Failure");
       exit(1);
     }
+
+    //If good fork, continue to call exec with all the necessary args
     if(childPid == 0) {
       childPid = getpid();
       pid_t gpid = getpgrp();
@@ -178,7 +192,7 @@ int main (int argc, char **argv)
       sprintf(tArg, "%d", tValue);
       char *slaveOptions[] = {"./slaverunner", "-i", iArg, "-l", filename, "-m", mArg, "-n", nArg, "-t", tArg, (char *)0};
       execv("./slaverunner", slaveOptions);
-      printf("    Should only print this in error\n");
+      fprintf(stderr, "    Should only print this in error\n");
     }
   }
 
@@ -190,10 +204,11 @@ int main (int argc, char **argv)
   //Wait for sValue number of processes to finish
   for(j = 1; j <= sValue; j++) {
     childPid = wait(&status);
-    printf("Master: Child %d has died....\n", childPid);
-    printf("%s*****Master: %s%d%s/%d children are dead*****%s\n",YLW, RED, j, YLW, sValue, NRM);
+    fprintf(stderr, "Master: Child %d has died....\n", childPid);
+    fprintf(stderr, "%s*****Master: %s%d%s/%d children are dead*****%s\n",YLW, RED, j, YLW, sValue, NRM);
   }
  
+  //Detach and remove the shared memory after all child process have died
   if(detachAndRemove(shmid, sharedStates) == -1) {
     perror("Failed to destroy shared memory segment");
     return -1;
@@ -203,16 +218,20 @@ int main (int argc, char **argv)
 }
 
 //Interrupt handler function that calls the process destroyer
-//Only ignore SIGQUIT signal, not SIGALRM  or SIGINT
+//Ignore SIGQUIT and SIGINT signal, not SIGALRM, so that
+//I can handle those two how I want
 void interruptHandler(int SIG){
   signal(SIGQUIT, SIG_IGN);
   signal(SIGINT, SIG_IGN);
+
   if(SIG == SIGINT) {
-    printf("\n%sCTRL-C received. Calling shutdown functions.%s\n", RED, NRM);
+    fprintf(stderr, "\n%sCTRL-C received. Calling shutdown functions.%s\n", RED, NRM);
   }
+
   if(SIG == SIGALRM) {
-    printf("%sMaster has timed out. Initiating shutdown sequence.%s\n", RED, NRM);
+    fprintf(stderr, "%sMaster has timed out. Initiating shutdown sequence.%s\n", RED, NRM);
   }
+
   processDestroyer();
 }
 
@@ -223,6 +242,7 @@ void processDestroyer() {
   kill(-getpgrp(), SIGQUIT);
 }
 
+//Detach and remove function
 int detachAndRemove(int shmid, data *shmaddr) {
   printf("Master: Detach and Remove Shared Memory\n");
   int error = 0;
