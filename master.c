@@ -191,7 +191,7 @@ int main (int argc, char **argv)
   for(j = 1; j <= sValue; j++) {
     childPid = wait(&status);
     printf("Master: Child %d has died....\n", childPid);
-    printf("*****Master: %d/%d children are dead*****\n", j, sValue);
+    printf("%s*****Master: %s%d%s/%d children are dead*****%s\n",YLW, RED, j, YLW, sValue, NRM);
   }
  
   if(detachAndRemove(shmid, sharedStates) == -1) {
@@ -208,10 +208,10 @@ void interruptHandler(int SIG){
   signal(SIGQUIT, SIG_IGN);
   signal(SIGINT, SIG_IGN);
   if(SIG == SIGINT) {
-    printf("\nCTRL-C received. Calling shutdown functions.\n");
+    printf("\n%sCTRL-C received. Calling shutdown functions.%s\n", RED, NRM);
   }
   if(SIG == SIGALRM) {
-    printf("Master has timed out. Initiating shutdown sequence.\n");
+    printf("%sMaster has timed out. Initiating shutdown sequence.%s\n", RED, NRM);
   }
   processDestroyer();
 }
@@ -220,7 +220,6 @@ void interruptHandler(int SIG){
 //kill calls SIGQUIT on the groupid to kill the children but
 //not the parent
 void processDestroyer() {
-  printf("processDestroyer() called\n");
   kill(-getpgrp(), SIGQUIT);
 }
 

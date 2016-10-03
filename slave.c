@@ -67,9 +67,6 @@ int main (int argc, char **argv) {
     perror("    Could not attach shared mem");
     exit(1);
   }
-  fprintf(stderr, "    Slave %d attached to shared memory location %d\n", processNumber + 1, shmid);
-
-  
 
   //set the sigquitHandler for the SIGQUIT signal
   signal(SIGQUIT, sigquitHandler);
@@ -145,17 +142,17 @@ int main (int argc, char **argv) {
     sharedStates->turn = j;
     sharedStates->flag[processNumber] = idle;
     
-    random = rand() % 9;
+    random = rand() % 5;
     sleep(random);
 
     i++;
   }
   
   if(sigNotReceived) {
-    fprintf(stderr, "    Slave %d COMPLETED WORK\n", processNumber + 1);
+    fprintf(stderr, "    Slave %d %sCOMPLETED WORK%s\n", processNumber + 1, GREEN, NRM);
   }
   else {
-    fprintf(stderr, "    Slave %d did NOT complete work\n", processNumber + 1);
+    fprintf(stderr, "    Slave %d did %sNOT %scomplete work\n", processNumber + 1, RED, NRM);
   }
 
   if(shmdt(sharedStates) == -1) {
@@ -178,7 +175,7 @@ void sigquitHandler(int sig) {
 //function to kill itself if the alarm goes off,
 //signaling that the parent could not kill it off
 void zombieKiller(int sig) {
-  printf("    Slave %d is killing itself due to slave timeout override\n", myPid);
+  printf("    %sSlave %d is killing itself due to slave timeout override%s\n",MAG, myPid, NRM);
   kill(myPid, SIGTERM);
   sleep(1);
   kill(myPid, SIGKILL);
