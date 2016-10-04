@@ -19,13 +19,13 @@ void sigquitHandler(int);
 void zombieKiller(int);
 volatile sig_atomic_t sigNotReceived = 1;
 pid_t myPid;
+int processNumber = 0;
 const int QUIT_TIMEOUT = 10;
 
 int main (int argc, char **argv) {
   srand(time(0));
   int numOfWrites = 3;
   int timeoutValue = 30;
-  int processNumber = 0;
   int shmid = 0;
   data *sharedStates;
   int *sharedInt;
@@ -116,9 +116,13 @@ int main (int argc, char **argv) {
     //Increment shared variable
     sharedStates->sharedInt++;
     fprintf(stderr,"    Slave %d about to enter critical section...\n", processNumber + 1);
-    
+
     //Assign turn to self and enter critical section
     sharedStates->turn = processNumber;
+
+    random = rand() % 3;
+//    sleep(random);
+
 
     file = fopen(fileName, "a");
     if(!file) {
@@ -178,7 +182,7 @@ int main (int argc, char **argv) {
 //This handles SIGQUIT being sent from parent process
 //It sets the volatile int to 0 so that the while loop will exit. 
 void sigquitHandler(int sig) {
-  printf("    PID %d has received signal %s (%d)\n", myPid, strsignal(sig), sig);
+  printf("    Slave %d has received signal %s (%d)\n", processNumber, strsignal(sig), sig);
   sigNotReceived = 0;
   //The slaves have at most 10 more seconds to exit gracefully or they will be SIGTERM'd
   alarm(QUIT_TIMEOUT);
@@ -187,7 +191,7 @@ void sigquitHandler(int sig) {
 //function to kill itself if the alarm goes off,
 //signaling that the parent could not kill it off
 void zombieKiller(int sig) {
-  printf("    %sSlave %d is killing itself due to slave timeout override%s\n",MAG, myPid, NRM);
+  printf("    %sSlave %d is killing itself due to slave timeout override%s\n",MAG, processNumber, NRM);
   kill(myPid, SIGTERM);
   sleep(1);
   kill(myPid, SIGKILL);
